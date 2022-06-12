@@ -1,20 +1,22 @@
 package ru.antipant.tests;
 
-import io.restassured.http.ContentType;
-import ru.antipant.model.AuthRequest;
-import ru.antipant.model.AuthResponse;
-import ru.antipant.model.UserRequest;
-import ru.antipant.model.UserResponse;
 import org.junit.jupiter.api.Test;
+import ru.antipant.models.AuthRequest;
+import ru.antipant.models.AuthResponse;
+import ru.antipant.models.UserRequest;
+import ru.antipant.models.UserResponse;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.hasItem;
+import static ru.antipant.specs.Specs.request;
+import static ru.antipant.specs.Specs.responseSpec;
 
 public class ReqressInTests {
 
-    String baseUrl = "https://reqres.in",
-            loginUrl = "/api/login",
+    String loginUrl = "/api/login",
             usersUrl = "/api/users",
             users2Url = "/api/users/2",
+            listUsers = "/api/users?page=2",
             name = "morpheus",
             job1 = "leader",
             job2 = "zion resident",
@@ -23,83 +25,70 @@ public class ReqressInTests {
             token = "QpwL5tke4Pnpja7X4",
             error = "Missing password";
 
+    public ReqressInTests() {
+    }
+
     @Test
     void loginTest() {
 
-        AuthRequest request = new AuthRequest(email, password);
-        AuthResponse response = given()
-                .log().uri()
-                .log().body()
-                .body(request)
-                .contentType(ContentType.JSON)
+        AuthRequest authRequest = new AuthRequest(email, password);
+        AuthResponse authResponse = given()
+                .spec(request)
+                .body(authRequest)
                 .when()
-                .post(baseUrl + loginUrl)
+                .post(loginUrl)
                 .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
+                .spec(responseSpec)
                 .extract().as(AuthResponse.class);
-        org.assertj.core.api.Assertions.assertThat(response.token).contains(token);
+        org.assertj.core.api.Assertions.assertThat(authResponse.getToken()).contains(token);
     }
 
     @Test
     void missingPasswordTest() {
 
-        AuthRequest request = new AuthRequest(email);
-        AuthResponse response = given()
-                .log().uri()
-                .log().body()
-                .body(request)
-                .contentType(ContentType.JSON)
+        AuthRequest authRequest = new AuthRequest(email);
+        AuthResponse authResponse = given()
+                .spec(request)
+                .body(authRequest)
                 .when()
-                .post(baseUrl + loginUrl)
+                .post(loginUrl)
                 .then()
-                .log().status()
-                .log().body()
                 .statusCode(400)
                 .extract().as(AuthResponse.class);
-        org.assertj.core.api.Assertions.assertThat(response.error).contains(error);
+        org.assertj.core.api.Assertions.assertThat(authResponse.getError()).contains(error);
     }
 
     @Test
     void createTest() {
 
-        UserRequest request = new UserRequest(name, job1);
-        UserResponse response = given()
-                .log().uri()
-                .log().body()
-                .body(request)
-                .contentType(ContentType.JSON)
+        UserRequest userRequest = new UserRequest(name, job1);
+        UserResponse userResponse = given()
+                .spec(request)
+                .body(userRequest)
                 .when()
-                .post(baseUrl + usersUrl)
+                .post(usersUrl)
                 .then()
-                .log().status()
-                .log().body()
                 .statusCode(201)
                 .extract().as(UserResponse.class);
-        org.assertj.core.api.Assertions.assertThat(response.job).contains(request.job);
-        org.assertj.core.api.Assertions.assertThat(response.name).contains(request.name);
+        org.assertj.core.api.Assertions.assertThat(userResponse.getJob()).contains(userRequest.getJob());
+        org.assertj.core.api.Assertions.assertThat(userResponse.getName()).contains(userRequest.getName());
 
     }
 
     @Test
     void updateTest() {
 
-        UserRequest request = new UserRequest(name, job2);
-        UserResponse response = given()
-                .log().uri()
-                .log().body()
-                .body(request)
-                .contentType(ContentType.JSON)
+        UserRequest userRequest = new UserRequest(name, job2);
+        UserResponse userResponse = given()
+                .spec(request)
+                .body(userRequest)
                 .when()
-                .put(baseUrl + users2Url)
+                .put(users2Url)
                 .then()
-                .log().status()
-                .log().body()
-                .statusCode(200)
+                .spec(responseSpec)
                 .extract().as(UserResponse.class);
-        org.assertj.core.api.Assertions.assertThat(response.job).contains(request.job);
-        org.assertj.core.api.Assertions.assertThat(response.name).contains(response.name);
+        org.assertj.core.api.Assertions.assertThat(userResponse.getJob()).contains(userRequest.getJob());
+        org.assertj.core.api.Assertions.assertThat(userResponse.getName()).contains(userRequest.getName());
 
     }
 
@@ -107,12 +96,24 @@ public class ReqressInTests {
     void deleteTest() {
 
         given()
-                .contentType(ContentType.JSON)
+                .spec(request)
                 .when()
-                .delete(baseUrl + users2Url)
+                .delete(users2Url)
                 .then()
-                .log().status()
-                .log().body()
                 .statusCode(204);
+    }
+
+    @Test
+    public void checkEmailAndFirstNameUsingGroovy() {
+        given()
+                .spec(request)
+                .when()
+                .get(listUsers)
+                .then()
+                .log().body()
+                .body("data.findAll{it.email =~/.*?@reqres.in/}.email.flatten()",
+                        hasItem("michael.lawson@reqres.in"))
+                .body("data.findAll{it.first_name}.first_name.flatten()",
+                        hasItem("Lindsay"));
     }
 }
