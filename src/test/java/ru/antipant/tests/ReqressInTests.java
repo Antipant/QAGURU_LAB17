@@ -1,7 +1,6 @@
 package ru.antipant.tests;
 
 import io.restassured.http.ContentType;
-import org.junit.jupiter.api.Disabled;
 import ru.antipant.model.AuthRequest;
 import ru.antipant.model.AuthResponse;
 import ru.antipant.model.UserRequest;
